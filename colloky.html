@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Prototipo de mensaje en el sitio</title>
+    <style>
+      body { margin: 0; background: #f4f3f7; font: 14px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; color: #1f1d2b; }
+      .prototype-banner {
+        position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; justify-content: center;
+        padding: 8px 16px; background: #1f1d2b; color: #fff; font-size: 13px; text-align: center;
+      }
+      .prototype-banner code { color: #ffd7c2; font-size: 12px; }
+      .store { display: block; width: 100%; max-width: 1280px; margin: 0 auto; background: #fff; }
+      .store img { display: block; width: 100%; height: auto; }
+    </style>
+  </head>
+  <body>
+    <div class="prototype-banner">
+      <span>Prototipo interno de Hellotext: simulación de una tienda para probar el mensaje en el sitio. No es el sitio real.</span>
+      <code id="config"></code>
+    </div>
+    <main class="store" aria-label="Captura de la tienda simulada">
+      <img src="./colloky-home.webp" alt="Página de inicio de una tienda de ropa y calzado infantil">
+    </main>
+
+    <script src="./hellotext-site-message.js?v=1"></script>
+    <script>
+      // QA backend through a temporary tunnel. ?api= overrides it when the tunnel URL changes.
+      const DEFAULT_API = 'https://ratios-nine-convertible-naturally.trycloudflare.com/v1'
+      const params = new URLSearchParams(window.location.search)
+      const apiRoot = params.get('api') || DEFAULT_API
+      const business = params.get('business') || '3PAYxyEZ'
+      const popup = params.get('popup') || 'oDAOkApl'
+      document.getElementById('config').textContent = `QA · popup ${popup}`
+
+      Hellotext.initialize(business, {
+        apiRoot,
+        popup: { id: popup },
+        push: { serviceWorkerUrl: './hellotext-sw.js' },
+      }).catch(error => console.warn('Hellotext QA initialization failed', error))
+    </script>
+  </body>
+</html>
