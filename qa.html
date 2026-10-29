@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Prueba de push en QA</title>
+    <style>
+      body { margin: 0; font: 16px/1.6 system-ui, sans-serif; color: #252432; background: #fff; }
+      .site-header { padding: 20px 32px; border-bottom: 1px solid #e4e2ec; font-weight: 700; }
+      main { max-width: 760px; margin: 0 auto; padding: 32px 20px 120px; }
+      .status { margin-top: 16px; padding: 12px 16px; border-radius: 12px; background: #f1eefc; font-size: 14px; }
+      .warning { margin-top: 16px; padding: 12px 16px; border-radius: 12px; background: #fff4e5; font-size: 14px; }
+      .inbox { margin-top: 16px; padding: 16px; border: 1px dashed #b9b3cc; border-radius: 12px; font-size: 14px; }
+      .inbox ol { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+      .inbox li { padding: 10px 12px; border-radius: 10px; background: #fff7f2; border: 1px solid #ffd9c4; }
+      .inbox li b { display: block; }
+      code { font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div class="site-header">Prueba de push en QA</div>
+    <main>
+      <h1>Popup de QA con push inmediato</h1>
+      <p>Esta página usa el SDK de la rama <code>feat/popup-push-immediate-coupon</code> y el backend de QA a través de un túnel temporal. No envía nada a producción.</p>
+      <div class="warning" id="config"></div>
+      <div class="status">Permiso de notificaciones: <code id="permission">…</code> · SDK: <span id="state">sin inicializar</span></div>
+      <section class="inbox" aria-live="polite">
+        <b>Notificaciones recibidas en este navegador</b>
+        <ol id="notifications"><li>Todavía no llegó ninguna.</li></ol>
+      </section>
+    </main>
+
+    <script src="./hellotext-qa.js"></script>
+    <script>
+      // QA backend through a temporary tunnel. ?api= overrides it when the tunnel URL changes.
+      const DEFAULT_API = 'https://cognitive-expected-rica-library.trycloudflare.com/v1'
+      const params = new URLSearchParams(window.location.search)
+      const apiRoot = params.get('api') || DEFAULT_API
+      const business = params.get('business') || '3PAYxyEZ'
+      const popup = params.get('popup') || 'oDAOkApl'
+      const state = document.getElementById('state')
+      const permission = document.getElementById('permission')
+      const list = document.getElementById('notifications')
+      document.getElementById('config').textContent = `QA · negocio ${business} · popup ${popup} · API ${apiRoot}`
+
+      // Keep every notification seen, even after the system closes its banner.
+      const seen = new Map()
+      const refresh = async () => {
+        permission.textContent = typeof Notification === 'undefined' ? 'no disponible' : Notification.permission
+        const registration = await navigator.serviceWorker?.getRegistration()
+        if (!registration) return
+        for (const notification of await registration.getNotifications()) {
+          seen.set(notification.tag || `${notification.title}:${notification.body}`, notification)
+        }
+        if (!seen.size) return
+        list.replaceChildren(...[...seen.values()].map(({ title, body }) => {
+          const item = document.createElement('li')
+          const heading = document.createElement('b')
+          heading.textContent = title
+          item.append(heading, body)
+          return item
+        }))
+      }
+      refresh()
+      setInterval(refresh, 1000)
+
+      state.textContent = 'inicializando'
+      Hellotext.initialize(business, {
+        apiRoot,
+        popup: { id: popup },
+        push: { serviceWorkerUrl: './hellotext-sw.js' },
+      })
+        .then(() => { state.textContent = 'listo' })
+        .catch(error => { state.textContent = `error: ${error.message}` })
+    </script>
+  </body>
+</html>
