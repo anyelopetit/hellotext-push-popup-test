@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Under Armour · Push obligatorio (QA)</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap">
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #fff url('./ua-store.webp') top center / 100% auto no-repeat;
+      }
+      /* underarmour.uy forces its font on every element, the popup included. */
+      * { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif !important; }
+      .qa-bar {
+        position: fixed;
+        z-index: 1;
+        right: 12px;
+        bottom: 12px;
+        left: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: rgb(23 23 23 / 88%);
+        color: #fff;
+        font-size: 13px;
+        line-height: 18px;
+      }
+      .qa-bar code { font-size: 12px; }
+      .qa-bar button {
+        margin-left: auto;
+        padding: 6px 12px;
+        border: 0;
+        border-radius: 999px;
+        background: #fff;
+        color: #171717;
+        font-size: 13px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="qa-bar">
+      <span>QA · Push obligatorio · popup <code id="popup"></code></span>
+      <span>Permiso: <code id="permission">…</code></span>
+      <span>SDK: <span id="state">sin inicializar</span></span>
+      <button type="button" id="reset">Reiniciar prueba</button>
+    </div>
+
+    <script src="./hellotext-required-push.js?v=1"></script>
+    <script>
+      // Local QA backend (branch qa/popup-local: hellotext#6734 + hellotext#6736) through a
+      // temporary Cloudflare tunnel, with the SDK of hellotext.js#96. ?api= overrides the tunnel.
+      const DEFAULT_API = 'https://date-citizen-optimization-executed.trycloudflare.com/v1'
+      const params = new URLSearchParams(window.location.search)
+      const apiRoot = params.get('api') || DEFAULT_API
+      const business = params.get('business') || '3PAYxyEZ'
+      const popup = params.get('popup') || 'lMm95mN3'
+      const state = document.getElementById('state')
+      const permission = document.getElementById('permission')
+      document.getElementById('popup').textContent = popup
+
+      const showPermission = () => {
+        permission.textContent = typeof Notification === 'undefined' ? 'no disponible' : Notification.permission
+      }
+      showPermission()
+      setInterval(showPermission, 1000)
+
+      // Forget the sent or closed mark so the popup opens again.
+      document.getElementById('reset').addEventListener('click', () => {
+        const key = `hello_popup_submitted_${popup}`
+        try { localStorage.removeItem(key) } catch (_) {}
+        document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+        location.reload()
+      })
+
+      state.textContent = 'inicializando'
+      Hellotext.initialize(business, {
+        apiRoot,
+        popup: { id: popup },
+        webchat: false,
+        whatsappWidget: false,
+        push: { serviceWorkerUrl: './hellotext-sw.js' },
+      })
+        .then(() => { state.textContent = Hellotext.push ? 'listo (Push disponible)' : 'listo (sin Push en este navegador)' })
+        .catch(error => { state.textContent = `error: ${error.message}` })
+    </script>
+  </body>
+</html>
